@@ -528,7 +528,9 @@ PHP_MINIT_FUNCTION(molten)
 
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
-    mo_ctrl_ctor(&PTG(prt), PTG(ctrl_domain_path), PTG(ctrl_call_interval), PTG(sampling_type), PTG(sampling_rate_base), PTG(sampling_request));
+    mo_shm_ctor(&PTG(msm));   
+    mo_status_ctor(&PTG(mst));   
+    mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(ctrl_domain_path), PTG(ctrl_call_interval), PTG(sampling_type), PTG(sampling_rate_base), PTG(sampling_request));
     mo_span_ctor(&PTG(psb), PTG(span_format), PTG(span_id_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
@@ -563,6 +565,8 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     molten_clear_reload_function();
     
     /* module dtor */
+    mo_shm_dtor(&PTG(msm));   
+    mo_status_dtor(&PTG(mst));   
     mo_ctrl_dtor(&PTG(prt));
     mo_chain_log_dtor(&PTG(pcl));
     mo_intercept_dtor(&PTG(pit));
@@ -595,6 +599,9 @@ PHP_RINIT_FUNCTION(molten)
 
     /* Join domain and path */
     join_ori_url(&PTG(request_uri), 1);
+
+    /* Output status */
+    mo_request_handle(&PTG(mst), &PTG(prt));
 
     /* Ctrl send and recieve */
     mo_ctrl_sr_data(&PTG(prt));
@@ -645,7 +652,7 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     mo_ctrl_record(&PTG(prt), PTG(pct).pch.is_sampled);
 
     /* Report some info*/
-    mo_rep_record_data(&PTG(pre), PTG(prt).pri, &PTG(pcl), &PTG(request_uri), PTG(pct).pch.is_sampled, PTG(execute_begin_time));
+    mo_rep_record_data(&PTG(pre), PTG(prt).mri, &PTG(pcl), &PTG(request_uri), PTG(pct).pch.is_sampled, PTG(execute_begin_time));
 
     /* Uninit intercept module */
     mo_intercept_uninit(&PTG(pit));

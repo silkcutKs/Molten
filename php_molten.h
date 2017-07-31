@@ -35,8 +35,10 @@ extern zend_module_entry molten_module_entry;
 #include "molten_chain.h"
 #include "molten_intercept.h"
 #include "molten_span.h"
+#include "molten_shm.h"
 #include "molten_util.h"
 #include "molten_ctrl.h"
+#include "molten_status.h"
 #include "molten_report.h"
 #include "php7_wrapper.h"
 
@@ -75,6 +77,8 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     mo_span_builder         psb;                    /* span builder */
     mo_ctrl_t               prt;                    /* control module */
     mo_report_t             pre;                    /* report module */
+    mo_status_t             mst;                    /* status module */
+    mo_shm_t                msm;                    /* shm module */
 
     char                    ip[INET_ADDRSTRLEN];    /* device ip */
     long                    execute_begin_time;     /* execute begin time */
