@@ -79,9 +79,9 @@ typedef struct{
 
 int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *mst, char *domain_path, int req_intval, long sampling_type, long sampling_rate, long sampling_request);
 void mo_ctrl_dtor(mo_ctrl_t *prt);
-void mo_ctrl_sr_data(mo_ctrl_t *prt);
+void mo_ctrl_sr_data(mo_ctrl_t *mrt);
 void mo_ctrl_serialize_msg(mo_ctrl_t *mrt, char **buf);
-void mo_ctrl_record(mo_ctrl_t *prt, int is_sampled);
+void mo_ctrl_record(mo_ctrl_t *mrt, int is_sampled);
 int mo_ctrl_update_sampling(char *rec, mo_ctrm_t *mcm);
 void mo_ctrl_sampling(mo_ctrl_t *prt, mo_chain_t *pct);
 #endif

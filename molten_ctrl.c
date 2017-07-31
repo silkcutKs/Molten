@@ -205,10 +205,10 @@ int mo_ctrl_update_sampling(char *rec, mo_ctrm_t *mcm)
 }
 
 /* {{{ record message */
-void mo_ctrl_record(mo_ctrl_t *prt, int is_sampled)
+void mo_ctrl_record(mo_ctrl_t *mrt, int is_sampled)
 {
     /* every request will do this */
-    //ZVAL_LONG_PLUS(&prt->mri->request_all);
+    __sync_add_and_fetch(&mrt->mri->request_all, 1);
     
     /* todo something error 
     zval *http_host;
@@ -219,7 +219,7 @@ void mo_ctrl_record(mo_ctrl_t *prt, int is_sampled)
     
 
     if (is_sampled == 1) {
-        //ZVAL_LONG_PLUS(&prt->mri->request_capture);
+        __sync_add_and_fetch(&mrt->mri->request_capture, 1);
     }
 }
 /* }}} */
@@ -227,10 +227,10 @@ void mo_ctrl_record(mo_ctrl_t *prt, int is_sampled)
 /* {{{ report and recive date */
 /* define protocol linke http , clent send report info, server send control info */
 /* we must avoid dead lock */
-void mo_ctrl_sr_data(mo_ctrl_t *prt)
+void mo_ctrl_sr_data(mo_ctrl_t *mrt)
 {
     /* check interval */
-    if (check_interval(prt)) {
+    if (check_interval(mrt)) {
 
         /*
         int             ret;
