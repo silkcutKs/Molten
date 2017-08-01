@@ -35,8 +35,9 @@
 #define MO_MAX_SLOT     16          /* shm max slot */
 
 /* slot mean */
-#define MO_CTRL_SHM     0           /* shm ctrl module info for every process */
-#define MO_STATUS_SHM   1           /* shm detail info for store */
+#define MO_CTRL_SHM         0           /* shm ctrl module info for every process */
+#define MO_RECORD_SHM       1           /* shm detail info for store */
+#define MO_SAMPLING_SHM     2           /* shm detail info for store */
 
 /* slot magic */
 #define MO_SLOT_MAGIC           0xa78ac1d5

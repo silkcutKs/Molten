@@ -54,16 +54,15 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
 
     long                    sampling_type;          /* sampling type */
     long                    sampling_request;       /* sampling by request one minute */
-    long                    sampling_rate_base;     /* tracing sampling rate */
+    long                    sampling_rate;          /* tracing sampling rate */
     char                    *chain_log_path;        /* chain log path */
     char                    *service_name;          /* service name */
     zend_bool               tracing_cli;            /* enable cli  tracing */
     char                    *span_format;           /* the span format */
     char                    *span_id_format;        /* the span id format */
-    char                    *ctrl_domain_path;      /* ctrl domain path */
-    long                    ctrl_call_interval;     /* call ctrl interval */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
+    char                    *notify_uri;            /* notify uri */
     long                    sink_type;              /* log sink type */
     long                    output_type;            /* sink spans output type */
     char                    *sink_http_uri;         /* sink http uri */

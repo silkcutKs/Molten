@@ -74,5 +74,6 @@ tests/*.out
 tests/*.php
 tests/*.sh
 tests/nctmplog
+tests/tmplog
 tests/*.mem
 tmp-php.ini

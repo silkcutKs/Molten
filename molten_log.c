@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
-#include <string.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <error.h>
-#include <fcntl.h>
-#include <time.h>
-#include "molten_log.h"
-#include "molten_util.h"
-#include "php7_wrapper.h"
+#include "molten_log.h" 
+
 #define CLOSE_LOG_FD do {                   \
         close(log->fd);                     \
         log->fd = -1;                       \
@@ -34,17 +25,17 @@ static int mo_mkdir_recursive(const char *dir);
 static void generate_log_path(mo_chain_log_t *log);
 
 #ifdef HAS_CURL
-/* {{{ trans log by http , current use php_stream */
-void trans_log_by_http(mo_chain_log_t *log, char *post_data)
+/* {{{ trans log by http , current use curl not php_stream */
+void send_data_by_http(char *post_uri, char *post_data)
 {
-    if (log->post_uri != NULL && strlen(log->post_uri) > 5) {
+    if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
             CURLcode res;
             struct curl_slist *list = NULL;
 
             list = curl_slist_append(list, "Content-Type: application/json");
-            curl_easy_setopt(curl, CURLOPT_URL, log->post_uri);
+            curl_easy_setopt(curl, CURLOPT_URL, post_uri);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
             curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 100L);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
@@ -339,7 +330,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
             break;
 #ifdef HAS_CURL
         case SINK_HTTP:
-            trans_log_by_http(log, bytes);
+            send_data_by_http(log->post_uri, bytes);
             break;
 #endif
 

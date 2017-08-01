@@ -16,87 +16,28 @@
  */
 #include "molten_ctrl.h"
 
-/* clear sock */
-//static inline void clear_sock(mo_ctrl_t *prt)
-//{
-//    if (prt->sock > 0) {
-//        close(prt->sock);
-//    }
-//    prt->sock = -1;
-//}
-
-/* connect sock */
-//static inline int connect_sock(mo_ctrl_t *prt)
-//{
-//    /* init unix sock */  
-//    struct sockaddr_un server;
-//    struct timeval timeout;
-//    int len;
-//    prt->sock = socket(AF_UNIX, SOCK_STREAM, 0);
-//    if (prt->sock < 0) {
-//        clear_sock(prt);
-//        return -1;
-//    }
-//
-//    server.sun_family = AF_UNIX;
-//    strcpy(server.sun_path, prt->domain_path);
-//    len = strlen(server.sun_path) + sizeof(server.sun_family);
-//
-//    // set read and write timeout 
-//    timeout.tv_sec = 0;
-//    timeout.tv_usec = 10000;    /* set to 10 ms */
-//    if (setsockopt(prt->sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-//        clear_sock(prt);
-//        return -1;
-//    }
-//
-//    if (setsockopt(prt->sock, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0) {
-//        clear_sock(prt);
-//        return -1;
-//    }
-//    
-//    if (connect(prt->sock, (struct sockaddr *)&server, len) < 0) {
-//        clear_sock(prt);
-//        return -1;
-//    }
-//
-//    return 0;
-//}
-
-/* dispose network error */
-//static inline void dispose_error(mo_ctrl_t *prt)
-//{
-//    /* for after error , havn`t to reconnect */
-//    /* if timeout errno = EAGAIN or EWOULDBLOCK */
-//    //if (errno != EAGAIN || errno != EWOULDBLOCK || errno != EINTR) {
-//    if (errno != EINTR) {
-//        clear_sock(prt);
-//        connect_sock(prt);
-//    }
-//}
-
 /* {{{ mo_ctrl_ctor */
-/* use tcp(stream) to keep data stable */
-/* if use udp server need use funciton recvfrom and sendto */
-/* current use tcp , so we use read and write to set timeout (: */
-int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *domain_path, int req_interval, long sampling_type, long sampling_rate, long sampling_request)
+int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request)
 {
-    //memset(prt->domain_path, 0x00, sizeof(prt->domain_path));
-    //strcpy(prt->domain_path, domain_path);
-    
+    long min = mo_time_m();
     mo_ctrm_t mcm = {0, 1, sampling_type, sampling_rate, sampling_request};
     mo_repi_t mri = {0, 0};
-
-    prt->last_req_time = 0;
-    prt->req_interval = req_interval;
-
-    /* init */
-    prt->msr = pemalloc(sizeof(mo_sr_t), 1);
+    mo_sr_t   msr = {min, sampling_request};
 
     /* init repi */
     prt->mcm = (mo_ctrm_t *)mo_create_slot(msm, MO_CTRL_SHM, (unsigned char *)&mcm, sizeof(mo_ctrm_t));
-    prt->mri = (mo_repi_t *)mo_create_slot(msm, MO_STATUS_SHM, (unsigned char *)&mri, sizeof(mo_repi_t));
+    prt->mri = (mo_repi_t *)mo_create_slot(msm, MO_RECORD_SHM, (unsigned char *)&mri, sizeof(mo_repi_t));
+    prt->msr = (mo_sr_t *)mo_create_slot(msm, MO_SAMPLING_SHM, (unsigned char *)&msr, sizeof(mo_sr_t));
 
+    /* notify uri */
+    /* one process up, one notify */
+
+#ifdef HAS_CURL
+    char *buf;
+    spprintf(&buf, 0, "{\"message\":\"molten is up\", \"ip\":\"%s\"}", ip);
+    send_data_by_http(notify_uri, buf);
+    efree(buf);
+#endif
     return 0;
 }
 /* }}} */
@@ -105,20 +46,7 @@ int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *domain_path, int req_inter
 void mo_ctrl_dtor(mo_ctrl_t *prt)
 {
     //array_free_persist(&prt->mri->capture_host);
-    pefree(prt->msr, 1);
-}
-/* }}} */
-
-/* {{{ check req interval already */
-static int inline check_interval(mo_ctrl_t *mrt)
-{
-    long sec = mo_time_sec();
-    if ((sec - mrt->last_req_time) > mrt->req_interval) {
-        mrt->last_req_time = sec;
-        return 1;
-    } else {
-        return 0;
-    }
+    //pefree(prt->msr, 1);
 }
 /* }}} */
 
@@ -217,69 +145,8 @@ void mo_ctrl_record(mo_ctrl_t *mrt, int is_sampled)
     }
     */
     
-
     if (is_sampled == 1) {
         __sync_add_and_fetch(&mrt->mri->request_capture, 1);
-    }
-}
-/* }}} */
-
-/* {{{ report and recive date */
-/* define protocol linke http , clent send report info, server send control info */
-/* we must avoid dead lock */
-void mo_ctrl_sr_data(mo_ctrl_t *mrt)
-{
-    /* check interval */
-    if (check_interval(mrt)) {
-
-        /*
-        int             ret;
-        smart_string    rec = {0};
-        smart_string    s = {0};
-        char            buf[REC_DATA_SIZE] = {0};
-
-        if (prt->sock < 0) {
-            if (connect_sock(prt) < 0) {
-                return;
-            }
-        }
-        
-        pack_message(&s, prt->mri);
-
-        ret = send(prt->sock, smart_string_str(s), smart_string_len(s), 0);
-        
-        smart_string_free(&s);
-
-        if (ret <= 0) {
-            dispose_error(prt);
-            MOLTEN_ERROR("molten report data error, errno:[%d], str:[%s]", errno, strerror(errno)); 
-            return;
-        } else {
-            ZVAL_LONG(&prt->mri->request_capture,   0);
-            ZVAL_LONG(&prt->mri->request_all,       0);
-        }
-
-        do{
-            ret = recv(prt->sock, buf, REC_DATA_SIZE, 0);
-            if (ret > 0) {
-                smart_string_appendl(&rec, buf, ret);
-                if (ret < REC_DATA_SIZE) {
-                    smart_string_0(&rec);
-                    break;
-                }
-            }
-        }while(ret > 0);
-
-
-        if (ret <= 0) {
-            dispose_error(prt);
-            MOLTEN_ERROR("molten read data error, errno:[%d], str:[%s]", errno, strerror(errno)); 
-            return;
-        }
-
-        unpack_message(&rec, prt->mcm);
-        smart_string_free(&rec);
-    */
     }
 }
 /* }}} */
@@ -316,10 +183,10 @@ void mo_ctrl_sampling(mo_ctrl_t *prt, mo_chain_t *pct)
         } else {
 
             /* sampling by r/m */
-            /* todo here can use share memory for actural data, but use memory lock will effect performance */
             long min = mo_time_m();
+            /* todo will not sync if not lock, here we can add a spin lock */
             if (min == prt->msr->last_min) {
-                prt->msr->request_num++; 
+                __sync_add_and_fetch(&prt->msr->request_num, 1);
             } else {
                 prt->msr->request_num = 0;
                 prt->msr->last_min = min;

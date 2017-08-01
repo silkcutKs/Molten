@@ -62,7 +62,6 @@ void mo_shm_ctor(mo_shm_t *msm)
         if (msm->msh->magic != MO_SLOT_HEADER_MAGIC || msm->msh->init != 1) {
             msm->msh->magic     = MO_SLOT_HEADER_MAGIC;
             msm->msh->init      = 1;
-            //mo_lock_create(&msm->msh->lock);
             msm->msh->slot_num  = slot_num;
         }
         msm->msh->attach_num++;
@@ -81,7 +80,6 @@ unsigned char *mo_create_slot(mo_shm_t *msm, int slot, unsigned char *data, int 
     }
     
     /* lock header */ 
-    //mo_lock_wlock(&msm->msh->lock);
     if (SLOT_ELEMENT(msm->mss, slot)->init != 1                             \
         || (SLOT_ELEMENT(msm->mss, slot))->magic != (MO_SLOT_MAGIC + slot)) {
          SLOT_ELEMENT(msm->mss, slot)->magic       = MO_SLOT_MAGIC + slot;
@@ -90,7 +88,6 @@ unsigned char *mo_create_slot(mo_shm_t *msm, int slot, unsigned char *data, int 
          memset(SLOT_ELEMENT(msm->mss, slot)->payload, 0x00, PAYLOAD_SIZE);
          memcpy(SLOT_ELEMENT(msm->mss, slot)->payload, data, size);
     }
-    //mo_lock_wunlock(&msm->msh->lock);
     
     return SLOT_ELEMENT(msm->mss, slot)->payload; 
 }
@@ -99,16 +96,13 @@ unsigned char *mo_create_slot(mo_shm_t *msm, int slot, unsigned char *data, int 
 /* {{{ mo relase slot */
 void mo_realse_slot(mo_shm_t *msm, int slot)
 {
-    //mo_lock_wlock(&msm->msh->lock);
     if (!((SLOT_ELEMENT(msm->mss, slot))->init == 1                             \
         && ((SLOT_ELEMENT(msm->mss, slot))->magic == (MO_SLOT_MAGIC + slot)))) {
          SLOT_ELEMENT(msm->mss, slot)->magic    = 0;
-         //mo_lock_destroy(&(SLOT_ELEMENT(msm->mss, slot)->lock));
          SLOT_ELEMENT(msm->mss, slot)->init        = 0;
          SLOT_ELEMENT(msm->mss, slot)->lenght      = 0;
          memset(SLOT_ELEMENT(msm->mss, slot)->payload, 0x00, PAYLOAD_SIZE);
     }
-    //mo_lock_wunlock(&msm->msh->lock);
 }
 /* }}} */
 
@@ -121,10 +115,6 @@ void mo_shm_dtor(mo_shm_t *msm)
     mo_fcntl_wlock(&msm->init_lock);
     int i = 0;
 
-    //int destroy_header_lock = 0;
-
-    //mo_lock_wlock(&msm->msh->lock);
-
     /* release slot header and slot */
     /* just build with gcc */
     if (__sync_sub_and_fetch(&msm->msh->attach_num, 1) == 0) {
@@ -134,16 +124,7 @@ void mo_shm_dtor(mo_shm_t *msm)
         msm->msh->init = 0;
         msm->msh->slot_num = 0;
         msm->msh->magic = 0;
-        //destroy_header_lock = 1;
     }
-    //mo_lock_wunlock(&msm->msh->lock);
-    
-    /* release header */
-    //if (destroy_header_lock) {
-    //    mo_lock_destroy(&msm->msh->lock);
-    //}
-        
-    /* destroy lock */
     
     shmdt(msm->mm);
     /* check nattch, if nattch == 0, delete shm */

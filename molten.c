@@ -463,13 +463,12 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_SYSTEM, OnUpdateString, service_name, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_request",      "10",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_rate_base",    "256",          PHP_INI_SYSTEM, OnUpdateLong, sampling_rate_base, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",          PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_id_format",         "level",       PHP_INI_SYSTEM, OnUpdateString, span_id_format, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.ctrl_domain_path",      "/tmp/tracing.sock",       PHP_INI_SYSTEM, OnUpdateString, ctrl_domain_path, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.ctrl_call_interval",    "60",           PHP_INI_SYSTEM, OnUpdateLong, ctrl_call_interval, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
@@ -530,7 +529,7 @@ PHP_MINIT_FUNCTION(molten)
     mo_obtain_local_ip(PTG(ip));
     mo_shm_ctor(&PTG(msm));   
     mo_status_ctor(&PTG(mst));   
-    mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(ctrl_domain_path), PTG(ctrl_call_interval), PTG(sampling_type), PTG(sampling_rate_base), PTG(sampling_request));
+    mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
     mo_span_ctor(&PTG(psb), PTG(span_format), PTG(span_id_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
@@ -602,9 +601,6 @@ PHP_RINIT_FUNCTION(molten)
 
     /* Output status */
     mo_request_handle(&PTG(mst), &PTG(prt));
-
-    /* Ctrl send and recieve */
-    mo_ctrl_sr_data(&PTG(prt));
 
     /* Judge sampling */ 
     mo_ctrl_sampling(&PTG(prt), &PTG(pct));
