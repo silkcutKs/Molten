@@ -76,7 +76,6 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     mo_span_builder         psb;                    /* span builder */
     mo_ctrl_t               prt;                    /* control module */
     mo_report_t             pre;                    /* report module */
-    mo_status_t             mst;                    /* status module */
     mo_shm_t                msm;                    /* shm module */
 
     char                    ip[INET_ADDRSTRLEN];    /* device ip */

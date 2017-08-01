@@ -16,14 +16,8 @@
  */
 #include "molten_status.h"
 
-/* {{{ status module ctor */
-void mo_status_ctor(mo_status_t *mst)
-{
-}
-/* }}} */
-
 /* {{{ check status */
-void mo_request_handle(mo_status_t *mst, mo_ctrl_t *mrt TSRMLS_DC)
+void mo_request_handle(mo_ctrl_t *mrt TSRMLS_DC)
 {
     /* request for status */
     if (SG(request_info).request_uri != NULL 
@@ -49,10 +43,20 @@ void mo_request_handle(mo_status_t *mst, mo_ctrl_t *mrt TSRMLS_DC)
 
         /* POST update ctrl info */
         if (strncmp(SG(request_info).request_method, "POST", sizeof("POST") - 1) == 0) {
-            char *post_data;
             php_stream_rewind(SG(request_info).request_body);
+            int res = 0;
+
+#if PHP_VERSION_ID < 70000
+            char *post_data;
             php_stream_copy_to_mem(SG(request_info).request_body, &post_data, PHP_STREAM_COPY_ALL, 0);
-            int res = mo_ctrl_update_sampling(post_data, mrt->mcm);
+            res = mo_ctrl_update_sampling(post_data, mrt->mcm);
+            efree(post_data);
+#else
+            zend_string *post_data = php_stream_copy_to_mem(SG(request_info).request_body, PHP_STREAM_COPY_ALL, 0);
+            res = mo_ctrl_update_sampling(ZSTR_VAL(post_data), mrt->mcm);
+            zend_string_free(post_data);
+
+#endif
             php_output_start_default(TSRMLS_C); 
             sapi_add_header_ex(ZEND_STRL("Cache-Control: no-cache, no-store, must-revalidate, max-age=0"), 1, 1 TSRMLS_CC);
             sapi_add_header_ex(ZEND_STRL("Content-Type: text/plain"), 1, 1 TSRMLS_CC);
@@ -65,17 +69,12 @@ void mo_request_handle(mo_status_t *mst, mo_ctrl_t *mrt TSRMLS_DC)
                 php_output_write(TRUE_OUTPUT, strlen(TRUE_OUTPUT) TSRMLS_CC); 
                 SG(sapi_headers).http_response_code = 200;
             }
+
             php_output_end_all(TSRMLS_C);
 
             /* disable output after */ 
             php_output_set_status(PHP_OUTPUT_DISABLED TSRMLS_C);
         }
     }
-}
-/* }}} */
-
-/* {{{ molten status dtor */
-void mo_status_dtor(mo_status_t *mst TSRMLS_DC)
-{
 }
 /* }}} */

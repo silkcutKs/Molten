@@ -17,39 +17,15 @@
 #ifndef MOLTEN_STATUS_H
 #define MOLTEN_STATUS_H
 
-#include <sys/shm.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <stdint.h>
-#include <errno.h>
-
 #include "php.h"
 #include "SAPI.h"
 
-#include "molten_util.h"
 #include "molten_ctrl.h"
 #include "php7_wrapper.h"
-#include "molten_struct.h"
+#include "main/php_streams.h"
 
 /* status uri */
 #define STATUS_URI      "/molten/status"
 
-/* status */
-#define STATUS_FAIL     -1
-#define STATUS_SUCCESS   0
-
-/* send status info */
-#define STATUS_REQUEST_SHUTDOWN  0
-#define STATUS_REQUEST_CONTINUE  1
-
-/* molten status */
-typedef struct {
-    char                *notify_uri;    /* notify service up */
-} mo_status_t;
-
-void mo_status_ctor(mo_status_t *mst);
-void mo_request_handle(mo_status_t *mst, mo_ctrl_t *mrt TSRMLS_DC);
-void mo_status_dtor(mo_status_t *mst);
+void mo_request_handle(mo_ctrl_t *mrt TSRMLS_DC);
 #endif
